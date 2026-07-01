@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Hogwarts Computer Examination</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+:root{
+--gold:#eeba30;
+--gold2:#d4af37;
+--bg:#07070f;
+--glass:rgba(15,15,25,.65);
+--border:rgba(255,255,255,.08);
+--green:#10b981;
+--red:#ef4444;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+font-family:'Montserrat',sans-serif;
+background:url('hogward.jpg') center/cover fixed;
+color:white;
+min-height:100vh;
+overflow-x:hidden;
+}
+
+#particle-canvas{
+position:fixed;
+inset:0;
+pointer-events:none;
+z-index:0;
+}
+
+main{
+position:relative;
+z-index:10;
+padding:25px;
+max-width:1400px;
+margin:auto;
+}
+
+.glass{
+background:rgba(0,0,0,.45);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,.08);
+border-radius:24px;
+box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+
+.title{
+font-family:'Cinzel Decorative';
+font-size:3rem;
+text-align:center;
+margin-bottom:20px;
+background:linear-gradient(#fff,var(--gold));
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+}
+
+.hidden{display:none!important;}
+
+.login-card{max-width:500px;margin:auto;padding:35px;}
+
+input{
+width:100%;
+padding:14px;
+margin-top:8px;
+margin-bottom:20px;
+border-radius:15px;
+border:none;
+outline:none;
+background:rgba(255,255,255,.08);
+color:white;
+}
+
+label{font-size:.85rem;color:var(--gold);}
+
+button{cursor:pointer;border:none;}
+
+.wax-btn{
+width:120px;height:120px;border-radius:50%;
+margin:auto;display:block;
+font-size:1.2rem;font-weight:bold;
+background:radial-gradient(circle,#9f1d1d,#5c0000);
+color:white;
+}
+
+.quiz-layout{display:grid;grid-template-columns:1fr 320px;gap:25px;}
+
+@media(max-width:1000px){
+.quiz-layout{grid-template-columns:1fr;}
+}
+
+.quiz-main{padding:30px;}
+
+.question{
+font-size:1.4rem;
+font-family:'Cinzel';
+margin-bottom:25px;
+}
+
+.option{
+padding:16px;margin-bottom:12px;
+border-radius:15px;
+background:rgba(255,255,255,.05);
+cursor:pointer;
+transition:.25s;
+}
+
+.option:hover{transform:translateX(6px);}
+
+.option.selected{
+background:rgba(16,185,129,.25);
+border:1px solid rgba(16,185,129,.6);
+}
+
+.nav-grid{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:8px;
+}
+
+.nav-grid button{
+aspect-ratio:1;
+border-radius:50%;
+background:rgba(239,68,68,.2);
+color:#ff8a8a;
+}
+
+.nav-grid button.done{
+background:rgba(16,185,129,.2);
+color:#7ef0c1;
+}
+
+.nav-grid button.current{border:3px solid gold;}
+
+.timer{font-size:1.5rem;font-family:'Cinzel';color:gold;}
+
+.action-row{display:flex;gap:10px;margin-top:25px;flex-wrap:wrap;}
+
+.action{padding:12px 22px;border-radius:25px;font-weight:600;}
+
+.next{background:gold;color:black;}
+.submit{background:#10b981;color:white;}
+.prev{background:#333;color:white;}
+
+.result{text-align:center;padding:60px 30px;}
+.result h2{font-family:'Cinzel';color:var(--gold);margin-top:10px;font-weight:400;}
+
+body,*{cursor:url("wand-glow.png"),auto;}
+</style>
+</head>
+
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<main>
+
+<section id="loginPage" class="glass login-card">
+<h1 class="title">RGCSM SEMESTER I <br> EXAMINATION</h1>
+
+<label>Username</label>
+<input id="username" placeholder="username">
+
+<label>Password</label>
+<input id="password" type="password" placeholder="password">
+
+<label>Student Photo</label>
+<input type="file" id="photo" accept="image/*">
+
+<button class="wax-btn" onclick="login()">ENTER</button>
+<p id="loginError"></p>
+</section>
+
+<section id="quizPage" class="hidden">
+<div class="quiz-layout">
+
+<div class="glass quiz-main">
+<div class="timer" id="timer">60:00</div>
+
+<div id="question" class="question"></div>
+<div id="options"></div>
+
+<div class="action-row">
+<button class="action prev" onclick="prevQuestion()">Previous</button>
+<button class="action next" onclick="nextQuestion()">Save & Next</button>
+<button class="action submit" onclick="submitQuiz()">Submit Exam</button>
+</div>
+</div>
+
+<div class="glass quiz-main">
+<h2>Exam Map</h2>
+<div id="nav" class="nav-grid"></div>
+</div>
+
+</div>
+</section>
+
+<section id="resultPage" class="hidden">
+<div class="glass result">
+<h1 class="title">Thanks for submitting exam</h1>
+<h2>Your responses have been safely submitted into the evaluation archives.</h2>
+</div>
+</section>
+
+</main>
+
+<script>
+
+/* ==========================
+   QUIZ DATA
+========================== */
+
+const quiz = [
+  {q:"Which Windows utility is primarily used to configure startup programs and boot options?",o:["Task Scheduler","System Configuration (MSConfig)","Registry Editor","Device Manager"],a:1},
+  {q:"Which MS Word feature allows users to restrict editing while permitting comments?",o:["Track Changes","Restrict Editing","Protect Document","Compare Documents"],a:1},
+  {q:"Which Excel function returns the position of a value within a selected range?",o:["INDEX()","MATCH()","LOOKUP()","FIND()"],a:1},
+  {q:"Which PowerPoint feature keeps a common design on all slides?",o:["Slide Sorter","Slide Master","Transitions","Animation Pane"],a:1},
+  {q:"Which MS Access object is designed to produce formatted printable output?",o:["Form","Query","Report","Macro"],a:2},
+  {q:"Which HTML tag is used to define the most important heading?",o:["<h6>","<heading>","<head>","<h1>"],a:3},
+  {q:"Which MS-DOS command displays the current drive and directory path?",o:["PATH","CD","PWD","TREE"],a:1},
+  {q:"Which type of memory is the fastest in a computer?",o:["RAM","ROM","Cache Memory","Hard Disk"],a:2},
+  {q:"Which shortcut key is used to rename a selected file or folder in Windows?",o:["F1","F2","F3","Ctrl + R"],a:1},
+  {q:"The full form of SSD is:",o:["Solid State Drive","Secure Storage Disk","System Storage Device","Solid Storage Data"],a:0},
+  {q:"Which Windows feature allows users to restore previous versions of files?",o:["Recycle Bin","File History","Disk Cleanup","Task View"],a:1},
+  {q:"Which MS Word shortcut key inserts a page break?",o:["Ctrl + Enter","Shift + Enter","Alt + Enter","Ctrl + Shift + Enter"],a:0},
+  {q:"Which Excel function is used to calculate the average of selected cells?",o:["AVG()","AVERAGE()","MEAN()","MID()"],a:1},
+  {q:"Which PowerPoint shortcut starts the slideshow from the beginning?",o:["Shift + F5","Ctrl + F5","F5","Alt + F5"],a:2},
+  {q:"Which HTML tag is used to insert an image?",o:["<img>","<picture>","<image>","<src>"],a:0},
+  {q:"Which Notepad shortcut key saves the current file?",o:["Ctrl + S","Ctrl + Shift + S","Alt + S","F12"],a:0},
+  {q:"WordPad supports which of the following text formatting features?",o:["Bold, Italic and Underline","Mail Merge","Macros","Track Changes"],a:0},
+  {q:"Which MS Paint option is used to rotate an image by 90 degrees?",o:["Resize","Rotate","Flip","Transform"],a:1},
+  {q:"Which MS-DOS command creates a new directory?",o:["DIR","MD","RD","TREE"],a:1},
+  {q:"Which computer generation first used microprocessors as the CPU?",o:["First","Second","Third","Fourth"],a:3},
+  {q:"Which shortcut key displays the desktop in Windows?",o:["Win + D","Win + E","Ctrl + D","Alt + D"],a:0},
+  {q:"The full form of URL is:",o:["Uniform Resource Locator","Universal Resource Link","Uniform Record Locator","Universal Reference Link"],a:0},
+  {q:"Which Windows application is used to capture screenshots?",o:["Paint","Snipping Tool","Calculator","WordPad"],a:1},
+  {q:"Which Excel feature automatically adjusts the width of a column based on its contents?",o:["Wrap Text","Merge Cells","AutoFit","Freeze Panes"],a:2},
+  {q:"Which HTML element is used to create a form for user input?",o:["<table>","<form>","<input>","<fieldset>"],a:1},
+  {q:"Which MS Access relationship enforces referential integrity between tables?",o:["One-to-Many","Many-to-Many","Lookup","Validation"],a:0},
+  {q:"Which Windows tool is used to manage installed hardware devices?",o:["Disk Cleanup","Task Scheduler","Device Manager","Resource Monitor"],a:2},
+  {q:"Which Excel function returns the number of days between two dates?",o:["DATEDIF()","DAY()","DAYS()","DATEVALUE()"],a:2},
+  {q:"Which HTML tag contains metadata that is not displayed on the webpage?",o:["<body>","<footer>","<head>","<section>"],a:2},
+  {q:"Which MS-DOS command is used to display or modify file attributes?",o:["ATTRIB","LABEL","FORMAT","TREE"],a:0},
+  {q:"Which type of software acts as an interface between the user and hardware?",o:["Application Software","Utility Software","Operating System","Firmware"],a:2},
+  {q:"Which shortcut key opens Task Manager directly in Windows?",o:["Ctrl + Alt + Esc","Ctrl + Shift + Esc","Alt + Shift + Esc","Win + Esc"],a:1},
+  {q:"The full form of ALU is:",o:["Arithmetic Logic Unit","Advanced Logic Utility","Automatic Logic Unit","Arithmetic Link Unit"],a:0},
+  {q:"Which Windows feature helps restore the system to an earlier working state?",o:["Disk Cleanup","System Restore","Windows Update","ReadyBoost"],a:1},
+  {q:"Which MS Word feature allows different headers on odd and even pages?",o:["Page Border","Section Break","Different Odd & Even","Columns"],a:2},
+  {q:"Which Excel function searches vertically for a value in the first column?",o:["LOOKUP()","MATCH()","VLOOKUP()","INDEX()"],a:2},
+  {q:"Which PowerPoint feature allows hidden notes for the presenter?",o:["Slide Sorter","Presenter Notes","Master View","Outline View"],a:1},
+  {q:"Which HTML tag is used to create a table row?",o:["<td>","<th>","<tr>","<table>"],a:2},
+  {q:"Which Notepad shortcut opens the Replace dialog box?",o:["Ctrl + H","Ctrl + R","Ctrl + Shift + H","Alt + H"],a:0},
+  {q:"WordPad is mainly classified as:",o:["Spreadsheet Software","Word Processing Software","Database Software","Presentation Software"],a:1},
+  {q:"Which MS Paint tool is used to magnify a portion of the image?",o:["Zoom","Scale","Lens","Resize"],a:0},
+  {q:"Which MS-DOS command clears the screen?",o:["CLEAR","CLS","RESET","ERASE"],a:1},
+  {q:"Which memory stores firmware permanently?",o:["RAM","ROM","Cache","Register"],a:1},
+  {q:"Which shortcut key refreshes the active Windows window?",o:["F2","F5","F7","Ctrl + R"],a:1},
+  {q:"The full form of OCR is:",o:["Optical Character Recognition","Online Character Reader","Optical Code Reader","Open Character Recognition"],a:0},
+  {q:"Which Windows folder stores shortcuts to programs that start automatically after login?",o:["Startup","Downloads","Program Files","Temp"],a:0},
+  {q:"Which MS Word feature allows creating a list of citations and references automatically?",o:["Bookmarks","Bibliography","Mail Merge","Track Changes"],a:1},
+  {q:"Which Excel function returns the smallest value in a selected range?",o:["MIN()","LOW()","SMALL()","LEAST()"],a:0},
+  {q:"Which PowerPoint view displays only the text content of slides?",o:["Reading View","Outline View","Normal View","Slide Show"],a:1},
+  {q:"Which HTML tag is used to create a numbered list?",o:["<ul>","<ol>","<li>","<dl>"],a:1},
+  {q:"Which MS Access object is primarily used to automate repetitive database tasks?",o:["Form","Macro","Report","Query"],a:1},
+  {q:"Which Windows utility is used to view running processes and system performance?",o:["Disk Management","Control Panel","Task Manager","System Restore"],a:2},
+  {q:"Which Excel function returns the current date without the current time?",o:["NOW()","TODAY()","DATE()","CURRENT()"],a:1},
+  {q:"Which HTML attribute specifies an alternative text for an image?",o:["title","alt","src","name"],a:1},
+  {q:"Which MS-DOS command displays the directory structure in a tree format?",o:["TREE","DIR","PATH","ATTRIB"],a:0},
+  {q:"Which memory is volatile and loses its contents when power is switched off?",o:["ROM","Cache","RAM","SSD"],a:2},
+  {q:"Which shortcut key opens File Explorer in Windows?",o:["Win + E","Ctrl + E","Alt + E","Win + F"],a:0},
+  {q:"The full form of BIOS is:",o:["Basic Input Output System","Binary Input Output Setup","Basic Internal Operating System","Binary Integrated Output System"],a:0},
+  {q:"Which Windows feature allows multiple applications to run simultaneously?",o:["Multitasking","Paging","Formatting","Indexing"],a:0},
+  {q:"Which MS Word command is used to insert personalized names and addresses into multiple letters?",o:["Track Changes","Mail Merge","AutoCorrect","Quick Parts"],a:1},
+  {q:"Which Excel function counts all non-empty cells in a selected range?",o:["COUNT()","COUNTA()","COUNTIF()","COUNTBLANK()"],a:1},
+  {q:"Which PowerPoint view displays one large slide with notes below it?",o:["Reading View","Outline View","Notes Page View","Slide Sorter View"],a:2},
+  {q:"Which HTML tag is used to insert a line break?",o:["<hr>","<br>","<break>","<lb>"],a:1},
+  {q:"Which Notepad menu contains the Word Wrap option?",o:["View","Format","File","Edit"],a:1},
+  {q:"Which WordPad feature allows inserting images into a document?",o:["Insert Picture","Object","Picture","Image"],a:0},
+  {q:"Which MS Paint tool is best suited for drawing perfectly straight lines?",o:["Brush","Curve","Line","Pencil"],a:2},
+  {q:"Which MS-DOS command is used to rename a file?",o:["MOVE","REN","COPY","NAME"],a:1},
+  {q:"Which computer generation introduced microprocessors?",o:["First","Second","Third","Fourth"],a:3},
+  {q:"Which shortcut key permanently deletes a selected file without sending it to the Recycle Bin?",o:["Ctrl + Delete","Shift + Delete","Alt + Delete","Win + Delete"],a:1},
+  {q:"The full form of USB is:",o:["Universal System Bus","Universal Serial Bus","Unified Service Bus","Universal Storage Bus"],a:1},
+  {q:"Which Windows utility is commonly used to partition hard disks?",o:["Disk Cleanup","Disk Management","Device Manager","File History"],a:1},
+  {q:"Which MS Word feature automatically corrects common spelling mistakes while typing?",o:["Track Changes","AutoCorrect","SmartArt","Research"],a:1},
+  {q:"Which Excel operator is used for exponentiation (power)?",o:["^","*","%","&"],a:0},
+  {q:"Which PowerPoint feature is used to move from one slide to another with visual effects?",o:["Animations","Transitions","Layouts","Themes"],a:1},
+  {q:"Which HTML tag is used to create a hyperlink?",o:["<href>","<link>","<a>","<url>"],a:2},
+  {q:"Which feature of Notepad allows long lines to be displayed on multiple lines without inserting paragraph breaks?",o:["Auto Correct","Word Wrap","Line Break","Page Layout"],a:1},
+  {q:"Which file format is the default when saving a document in the latest versions of WordPad?",o:["Rich Text Format (.rtf)","Plain Text (.txt)","OpenDocument Text (.odt)","Office Open XML (.docx)"],a:3},
+  {q:"Which MS Paint feature allows the user to make one color transparent while selecting an image?",o:["Transparent Selection","Magic Wand","Alpha Fill","Layer Mask"],a:0},
+  {q:"Which MS-DOS command displays the contents of a text file without opening an editor?",o:["DIR","TYPE","COPY","CLS"],a:1},
+  {q:"Which generation of computers introduced integrated circuits (ICs)?",o:["First Generation","Second Generation","Third Generation","Fourth Generation"],a:2},
+  {q:"Which shortcut key opens the Run dialog box in Windows?",o:["Ctrl + R","Win + R","Alt + R","Shift + R"],a:1},
+  {q:"The full form of POST in computers is:",o:["Power On Self Test","Program On System Test","Power Operating System Test","Primary Output System Test"],a:0},
+  {q:"Which Windows utility is primarily used to remove temporary files and free disk space?",o:["Disk Cleanup","Disk Defragmenter","Task Scheduler","Registry Editor"],a:0},
+  {q:"Which MS Word feature automatically generates a list of headings with page numbers?",o:["Index","Mail Merge","Table of Contents","Track Changes"],a:2},
+  {q:"Which Excel function counts only cells containing numeric values?",o:["COUNTA()","COUNT()","COUNTIF()","SUM()"],a:1},
+  {q:"Which PowerPoint view is mainly used for rearranging the order of slides?",o:["Reading View","Normal View","Slide Sorter View","Notes View"],a:2},
+  {q:"In MS Access, which object is primarily used to retrieve data based on specific conditions?",o:["Table","Query","Form","Macro"],a:1},
+  {q:"Which HTML tag defines the title displayed on the browser tab?",o:["<body>","<head>","<title>","<meta>"],a:2},
+  {q:"Which Notepad encoding supports the largest range of international characters?",o:["ANSI","UTF-8","ASCII","OEM"],a:1},
+  {q:"Which WordPad formatting feature is NOT available compared to MS Word?",o:["Bold","Bullets","Mail Merge","Text Alignment"],a:2},
+  {q:"Which MS Paint tool is used to copy a color from an existing image?",o:["Brush","Fill Tool","Color Picker","Pencil"],a:2},
+  {q:"Which MS-DOS command changes the current working directory?",o:["DIR","TREE","CD","MOVE"],a:2},
+  {q:"Which component is known as the 'brain' of the computer?",o:["RAM","Motherboard","CPU","ROM"],a:2},
+  {q:"Which shortcut key locks a Windows computer immediately?",o:["Win + D","Win + L","Ctrl + L","Alt + L"],a:1},
+  {q:"The full form of GUI is:",o:["General User Interface","Graphical User Interface","Graphic Utility Interface","Global User Integration"],a:1},
+  {q:"Which Windows component stores deleted files before permanent removal?",o:["Downloads","Recycle Bin","Taskbar","Clipboard"],a:1},
+  {q:"Which MS Word feature allows multiple users to review and suggest edits without modifying the original text permanently?",o:["Mail Merge","Track Changes","Word Count","Find and Replace"],a:1},
+  {q:"Which Excel function returns the highest value from a selected range?",o:["MAX()","HIGH()","LARGE()","TOP()"],a:0},
+  {q:"Which PowerPoint feature automatically applies movement effects to objects during a slideshow?",o:["Transitions","Animations","Themes","Layouts"],a:1},
+  {q:"Which HTML element is used to create an unordered (bulleted) list?",o:["<ol>","<ul>","<li>","<dl>"],a:1}
+];
+
+/* RANDOMIZE QUESTIONS */
+quiz.forEach(q=>q.rand=Math.random());
+quiz.sort((a,b)=>a.rand-b.rand);
+
+/* VARIABLES */
+let currentQuestion=0;
+let answers=new Array(quiz.length).fill(null);
+let username="";
+
+/* DOM */
+const questionEl=document.getElementById("question");
+const optionsEl=document.getElementById("options");
+const navEl=document.getElementById("nav");
+const loginError=document.getElementById("loginError");
+const loginPage=document.getElementById("loginPage");
+const quizPage=document.getElementById("quizPage");
+const resultPage=document.getElementById("resultPage");
+
+/* LOGIN */
+function login(){
+const user=document.getElementById("username").value.trim();
+const pass=document.getElementById("password").value.trim();
+
+const match=user.match(/^rgcsm(\d{3})$/);
+
+if(!match){
+loginError.innerText="Invalid Username Format";
+return;
+}
+
+if(match[1]!==pass){
+loginError.innerText="Invalid Password";
+return;
+}
+
+username=user;
+
+loginPage.classList.add("hidden");
+quizPage.classList.remove("hidden");
+
+buildNavigation();
+loadQuestion();
+startTimer();
+}
+
+/* LOAD QUESTION */
+function loadQuestion(){
+const q=quiz[currentQuestion];
+questionEl.innerText=`${currentQuestion+1}. ${q.q}`;
+optionsEl.innerHTML="";
+
+q.o.forEach((opt,i)=>{
+const div=document.createElement("div");
+div.className="option";
+if(answers[currentQuestion]===i) div.classList.add("selected");
+
+div.innerText=opt;
+div.onclick=()=>{
+answers[currentQuestion]=i;
+loadQuestion();
+updateNavigation();
+};
+
+optionsEl.appendChild(div);
+});
+
+updateNavigation();
+}
+
+/* NAV */
+function buildNavigation(){
+navEl.innerHTML="";
+quiz.forEach((_,i)=>{
+const btn=document.createElement("button");
+btn.innerText=i+1;
+btn.onclick=()=>{currentQuestion=i;loadQuestion();};
+navEl.appendChild(btn);
+});
+updateNavigation();
+}
+
+function updateNavigation(){
+[...navEl.children].forEach((btn,i)=>{
+btn.classList.remove("done","current");
+if(answers[i]!==null) btn.classList.add("done");
+if(i===currentQuestion) btn.classList.add("current");
+});
+}
+
+/* NAV BUTTONS */
+function nextQuestion(){
+if(currentQuestion<quiz.length-1){
+currentQuestion++;
+loadQuestion();
+}
+}
+
+function prevQuestion(){
+if(currentQuestion>0){
+currentQuestion--;
+loadQuestion();
+}
+}
+
+/* TIMER */
+let seconds=3600;
+let timerInterval;
+
+function startTimer(){
+timerInterval=setInterval(()=>{
+seconds--;
+let m=Math.floor(seconds/60);
+let s=seconds%60;
+
+document.getElementById("timer").innerText=
+`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+if(seconds<=0){
+clearInterval(timerInterval);
+submitQuiz();
+}
+},1000);
+}
+
+/* SUBMIT */
+function submitQuiz(){
+clearInterval(timerInterval);
+quizPage.classList.add("hidden");
+resultPage.classList.remove("hidden");
+}
+
+/* PARTICLES */
+const canvas=document.getElementById("particle-canvas");
+const c=canvas.getContext("2d");
+
+function resize(){
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+}
+resize();
+window.addEventListener("resize",resize);
+
+const particles=[];
+for(let i=0;i<80;i++){
+particles.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+r:Math.random()*2+1,
+v:Math.random()*0.5+0.2
+});
+}
+
+function animate(){
+c.clearRect(0,0,canvas.width,canvas.height);
+c.fillStyle="gold";
+
+particles.forEach(p=>{
+p.y-=p.v;
+if(p.y<0)p.y=canvas.height;
+
+c.beginPath();
+c.arc(p.x,p.y,p.r,0,Math.PI*2);
+c.fill();
+});
+
+requestAnimationFrame(animate);
+}
+animate();
+
+</script>
+
+</body>
+</html>
